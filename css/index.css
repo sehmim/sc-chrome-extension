@@ -1,0 +1,52 @@
+body {
+  margin: 0;
+}
+
+.graphic {
+  height: auto;
+  margin: 0 auto;
+  max-width: 300px;
+  width: 100%;
+}
+
+.content {
+  margin: 0 auto;
+  padding: 50px;
+  width: 300px;
+}
+
+.content h1 {
+  font-size: 25px;
+  margin: 30px 0 15px;
+  text-align: center;
+}
+
+.content p {
+  font-size: 14px;
+  margin: 0;
+  text-align: center;
+}
+
+.content span {
+  display: block;
+  font-size: 10px;
+  margin-top: 15px;
+  text-align: center;
+}
+
+.slider {
+  position: fixed;
+  right: 20px;
+  top: 20px;
+  z-index: 99999999;
+  width: 400px;
+  height: 500px;
+  background-color: #fff;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  box-shadow: 0px 0px 30px -2px #666;
+  line-height: 1;
+  box-sizing: content-box;
+  text-rendering: auto;
+  font-family: 'Cerebri Sans', sans-serif;
+}
