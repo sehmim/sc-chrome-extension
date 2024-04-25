@@ -1,5 +1,4 @@
 ////////////////////////////////////
-
 async function fetchDataFromServer(url) {
   try {
     const response = await fetch(url);
@@ -63,9 +62,9 @@ function createButton() {
   return button;
 }
 
-function createDropdownWithOptions(optionsArray) {
+function createDropdownWithOptions(optionsArray, textContent) {
   var labelElement = document.createElement('label');
-  labelElement.textContent = 'Select your team:';
+  labelElement.textContent = textContent || 'Select your team:';
 
   var selectElement = document.createElement('select');
 
@@ -73,6 +72,7 @@ function createDropdownWithOptions(optionsArray) {
     var optionElement = document.createElement('option');
     optionElement.textContent = optionText;
     optionElement.value = optionText;
+    selectElement.style.width = "200px";
     selectElement.appendChild(optionElement);
   });
 
@@ -108,8 +108,6 @@ function handleApplyCouponCode(couponCode, maindDiv){
   let discountInput = 
     document.querySelector('input[aria-label="Discount code"]') 
     || document.querySelector('input[placeholder="Discount code"]');
-      
-  console.log("discountInput ->", discountInput);
 
   // Check if the input element exists
   if (discountInput) {
@@ -126,7 +124,6 @@ function handleApplyCouponCode(couponCode, maindDiv){
 
     setTimeout(() => {
       let applyButton = document.querySelector('button[aria-label="Apply Discount Code"]');
-      console.log("applyButton ->", applyButton);
 
       // Check if the button element exists
       if (applyButton) {
@@ -142,21 +139,20 @@ function handleApplyCouponCode(couponCode, maindDiv){
 
 // Function to simulate fetching allowed domains with a delay
 async function fetchAllowedDomains() {
+
+  let allowedDomains = localStorage.getItem('sc-allowed-domains');
+  allowedDomains = allowedDomains ? allowedDomains.split(',') : [];
+
+  if (allowedDomains && allowedDomains.length !== 0) {
+    return allowedDomains
+  }
+
+  console.log("CALLING ALLOWED DOMAINS");
   const url = "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/allowedDomains";
-  const { allowedDomains: data } = await fetchDataFromServer(url);
+  const { allowedDomains: data } = await fetchDataFromServer(url) || [];
 
-  let allowedDomains = [];
-
-
-  data.map((item) => {
-    console.log(item.advertiserUrl);
-    allowedDomains.push({
-      allowedDomain: item.advertiserUrl, 
-      affiliateLink: item?.trackingLink, 
-      couponCode: item?.couponCode
-    })
-  })
-
+  allowedDomains = data.map((item) => (item.advertiserUrl));
+  localStorage.setItem('sc-allowed-domains', allowedDomains);
 
   return allowedDomains;
 }
@@ -169,39 +165,42 @@ async function fetchAllowedGroups() {
   return groups.map((group) => {
     return group.teamName;
   })
-
 }
 
+async function fetchDefaultCharaties() {
+  const url = "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/getDefaultCharities";
+  const charities = await fetchDataFromServer(url);
+
+  return charities.map(({ data }) => {
+    return data.organizationName;
+  })
+}
+
+function isInDomainList(domains, currentURL) {
+    const currentDomain = new URL(currentURL).hostname;
+    return domains.some(domain => currentDomain.includes(domain));
+}
 
 
 //////////////////////////
 async function initialize() {
+  const allowedDomains = await fetchAllowedDomains();
+  const currentHostname = window.location.href;
 
-  // if (!localStorage.getItem('user')) {
-  //   const div = createDivContainer();
-  //   const loginButton = createLoginButton();
-  //   div.append(loginButton)
-  //   document.body.appendChild(div);
-  //   return;
-  // }
+  const codeAlreadyAppliedToURL = window.location.href.includes("irclickid");
+  const allowedBrand = isInDomainList(allowedDomains, currentHostname);
 
-  // chrome.runtime.onMessage.addListener(
-  //     function(message, sender, sendResponse) {
-  //         console.log(" ------->");
-  //         switch(message.type) {
-  //             case "getText":
-  //               console.log("YESSSSSS ------>")
-  //             break;
-  //         }
-  //     }
-  // );
-
-  // const allowedDomains = await fetchAllowedDomains();
-  // const allowedTeams = await fetchAllowedGroups();
-
-  // const currentHostname = window.location.href;
-  // const matchedDomain = allowedDomains.find(domain => currentHostname.includes(domain.allowedDomain));
-
+  if (allowedBrand && !codeAlreadyAppliedToURL) {
+    await createAppContainer();
+    // const div = createDivContainer();
+    // const dropdown = createDropdownWithOptions(allowedTeams);
+    // const button = createButton();
+    // button.addEventListener('click', () => handleButtonClick(matchedDomain.affiliateLink));
+    
+    // div.appendChild(dropdown);
+    // div.appendChild(button);
+    // document.body.appendChild(div);
+  }
 
   // if (matchedDomain && matchedDomain?.couponCode) {
   //   if (window.location.href.includes("checkouts")) {
@@ -238,23 +237,43 @@ async function initialize() {
   // // Append the reproduced iframe to the document body or any other container
   // document.body.appendChild(reproducedIframe);
 
-  const isolatedIframe = createIsolatedIframe('400px', '300px');
+}
 
-  isolatedIframe.onload = function() {
+async function createAppContainer(){
+  const isolatedIframe = createIsolatedIframe('400px', '300px');
+  isolatedIframe.onload = async function() {
     const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
 
     const loginForm = generateLoginForm();
 
-    if (localStorage.getItem('sponsorcircle-useremail')) {
-      console.log("HOZAAAAAA!!")
-    }
+    const greetingDiv = greetUser();
 
     iframeDocument.body.innerHTML = '';
-    iframeDocument.body.appendChild(loginForm);
-    
-  };
+    if (localStorage.getItem('sponsorcircle-useremail')) {
+        const allowedTeams = await fetchAllowedGroups();
+        const allowedCharaties = await fetchDefaultCharaties();
 
+        const allowedTeamsDropdown = createDropdownWithOptions(allowedTeams, "Your Teams:");
+        const allowedCharatiesDropdown = createDropdownWithOptions(allowedCharaties, "Default Charities:");
+
+        iframeDocument.body.appendChild(greetingDiv);
+        iframeDocument.body.appendChild(allowedTeamsDropdown);
+        iframeDocument.body.appendChild(allowedCharatiesDropdown);
+    } else {
+      iframeDocument.body.appendChild(loginForm);
+    }
+  };
   document.body.appendChild(isolatedIframe);
+} 
+
+function greetUser() {
+  const userEmail = localStorage.getItem('sponsorcircle-useremail');
+  if (userEmail) {
+    const div = document.createElement('div');
+    div.innerText = `Hello ${userEmail}`;
+
+    return div;
+  }
 }
 
 initialize().then(() => {
@@ -271,7 +290,7 @@ function createIsolatedIframe(width, height) {
 
   // Set inline styles for the iframe
   iframe.style.position = 'fixed';
-  iframe.style.top = '20%';
+  iframe.style.top = '30%';
   iframe.style.left = '85%';
   iframe.style.transform = 'translate(-50%, -50%)';
   iframe.style.width = width;
@@ -320,16 +339,11 @@ function generateLoginForm() {
   submitButton.textContent = 'Submit';
   
   // Add event listener to submit button
-  submitButton.addEventListener('click', function(event) {
-    event.preventDefault();
-    
-    const email = emailInput.value;
-    const password = passwordInput.value;
-
-    localStorage.setItem('sponsorcircle-useremail', email);
-    
-    console.log('Email:', email);
-    console.log('Password:', password);
+  submitButton.addEventListener('click', async function(event) {
+      event.preventDefault();
+      const email = emailInput.value;
+      const password = passwordInput.value;
+      await loginUser(email, password);
   });
   
   // Append inputs and button to form
@@ -338,4 +352,38 @@ function generateLoginForm() {
   form.appendChild(submitButton);
   
   return form;
+}
+
+
+async function loginUser(email, password) {
+    const url = 'http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/loginUser';
+
+    const data = {
+        email: email,
+        password: password
+    };
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to login');
+        }
+
+        if (response.ok) {
+          localStorage.setItem('sponsorcircle-useremail', email);
+          location.reload();
+        }
+
+        return await response.json();
+    } catch (error) {
+        alert('Failed to login');
+        return { error };
+    }
 }
