@@ -1,40 +1,36 @@
-body {
-  margin: 0;
-}
-
-.graphic {
+.sc-graphic {
   height: auto;
   margin: 0 auto;
   max-width: 300px;
   width: 100%;
 }
 
-.content {
+.sc-content {
   margin: 0 auto;
   padding: 50px;
   width: 300px;
 }
 
-.content h1 {
+.sc-content h1 {
   font-size: 25px;
   margin: 30px 0 15px;
   text-align: center;
 }
 
-.content p {
+.sc-content p {
   font-size: 14px;
   margin: 0;
   text-align: center;
 }
 
-.content span {
+.sc-content span {
   display: block;
   font-size: 10px;
   margin-top: 15px;
   text-align: center;
 }
 
-.slider {
+.sc-slider {
   position: fixed;
   right: 20px;
   top: 20px;

@@ -1,12 +1,5 @@
-chrome.runtime.onMessage.addListener(function(message, sender, sendResponse) {
-    if (message.action === 'login') {
-      console.log("MESSAGE ---->", message)
-    }
-});
-
-
-
 ////////////////////////////////////
+
 async function fetchDataFromServer(url) {
   try {
     const response = await fetch(url);
@@ -192,41 +185,157 @@ async function initialize() {
   //   return;
   // }
 
-  const allowedDomains = await fetchAllowedDomains();
-  const allowedTeams = await fetchAllowedGroups();
+  // chrome.runtime.onMessage.addListener(
+  //     function(message, sender, sendResponse) {
+  //         console.log(" ------->");
+  //         switch(message.type) {
+  //             case "getText":
+  //               console.log("YESSSSSS ------>")
+  //             break;
+  //         }
+  //     }
+  // );
 
-  const currentHostname = window.location.href;
-  const matchedDomain = allowedDomains.find(domain => currentHostname.includes(domain.allowedDomain));
+  // const allowedDomains = await fetchAllowedDomains();
+  // const allowedTeams = await fetchAllowedGroups();
+
+  // const currentHostname = window.location.href;
+  // const matchedDomain = allowedDomains.find(domain => currentHostname.includes(domain.allowedDomain));
 
 
-  if (matchedDomain && matchedDomain?.couponCode) {
-    if (window.location.href.includes("checkouts")) {
-      const div = createDivContainer();
+  // if (matchedDomain && matchedDomain?.couponCode) {
+  //   if (window.location.href.includes("checkouts")) {
+  //     const div = createDivContainer();
 
-      // const dropdown = createDropdownWithOptions(allowedTeams);
+  //     // const dropdown = createDropdownWithOptions(allowedTeams);
 
-      const button = createButton();
-      button.addEventListener('click', () => handleApplyCouponCode(matchedDomain.couponCode, div));
+  //     const button = createButton();
+  //     button.addEventListener('click', () => handleApplyCouponCode(matchedDomain.couponCode, div));
 
-      // div.appendChild(dropdown);
-      div.appendChild(button);
-      document.body.appendChild(div);
+  //     // div.appendChild(dropdown);
+  //     div.appendChild(button);
+  //     document.body.appendChild(div);
+  //   }
+  // } else {
+  //   const appliedURL = window.location.href.includes("irclickid");
+  //   if (matchedDomain && !appliedURL) {
+  //     const div = createDivContainer();
+      
+  //     const dropdown = createDropdownWithOptions(allowedTeams);
+      
+  //     const button = createButton();
+  //     button.addEventListener('click', () => handleButtonClick(matchedDomain.affiliateLink));
+      
+  //     div.appendChild(dropdown);
+  //     div.appendChild(button);
+  //     document.body.appendChild(div);
+  //   }
+  // }
+
+  // Call the function to reproduce the section content and store the result
+  // const reproducedIframe = reproduceSectionContent();
+
+  // // Append the reproduced iframe to the document body or any other container
+  // document.body.appendChild(reproducedIframe);
+
+  const isolatedIframe = createIsolatedIframe('400px', '300px');
+
+  isolatedIframe.onload = function() {
+    const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
+
+    const loginForm = generateLoginForm();
+
+    if (localStorage.getItem('sponsorcircle-useremail')) {
+      console.log("HOZAAAAAA!!")
     }
-  } else {
-    const appliedURL = window.location.href.includes("irclickid");
-    if (matchedDomain && !appliedURL) {
-      const div = createDivContainer();
-      
-      const dropdown = createDropdownWithOptions(allowedTeams);
-      
-      const button = createButton();
-      button.addEventListener('click', () => handleButtonClick(matchedDomain.affiliateLink));
-      
-      div.appendChild(dropdown);
-      div.appendChild(button);
-      document.body.appendChild(div);
-    }
-  }
+
+    iframeDocument.body.innerHTML = '';
+    iframeDocument.body.appendChild(loginForm);
+    
+  };
+
+  document.body.appendChild(isolatedIframe);
 }
 
-initialize();
+initialize().then(() => {
+  console.log("INITIALZIED")
+});
+
+
+function createIsolatedIframe(width, height) {
+  // Create a new iframe element
+  const iframe = document.createElement('iframe');
+
+  // Set attributes for the iframe
+  iframe.setAttribute('src', 'about:blank'); // Load a blank page initially
+
+  // Set inline styles for the iframe
+  iframe.style.position = 'fixed';
+  iframe.style.top = '20%';
+  iframe.style.left = '85%';
+  iframe.style.transform = 'translate(-50%, -50%)';
+  iframe.style.width = width;
+  iframe.style.height = height;
+  iframe.style.border = 'none';
+  iframe.style.backgroundColor = '#fff';
+  iframe.style.borderRadius = '8px';
+  iframe.style.boxShadow = '0px 0px 10px rgba(0, 0, 0, 0.1)';
+
+  // Access the document within the iframe
+  const iframeDocument = iframe.contentDocument;
+
+  // If the iframe document is not null
+  if (iframeDocument) {
+    // Apply some default styles to the iframe content to ensure isolation
+    iframeDocument.body.style.margin = '0';
+    iframeDocument.body.style.padding = '20px';
+    iframeDocument.body.style.fontFamily = 'Arial, sans-serif';
+    iframeDocument.body.style.fontSize = '16px';
+    iframeDocument.body.style.color = '#333';
+  }
+
+  // Return the created iframe
+  return iframe;
+}
+
+
+function generateLoginForm() {
+  // Create form element
+  const form = document.createElement('form');
+  
+  // Create email input
+  const emailInput = document.createElement('input');
+  emailInput.setAttribute('type', 'email');
+  emailInput.setAttribute('placeholder', 'Email');
+  emailInput.setAttribute('name', 'email');
+  
+  // Create password input
+  const passwordInput = document.createElement('input');
+  passwordInput.setAttribute('type', 'password');
+  passwordInput.setAttribute('placeholder', 'Password');
+  passwordInput.setAttribute('name', 'password');
+  
+  // Create submit button
+  const submitButton = document.createElement('button');
+  submitButton.textContent = 'Submit';
+  
+  // Add event listener to submit button
+  submitButton.addEventListener('click', function(event) {
+    event.preventDefault();
+    
+    const email = emailInput.value;
+    const password = passwordInput.value;
+
+    localStorage.setItem('sponsorcircle-useremail', email);
+    
+    console.log('Email:', email);
+    console.log('Password:', password);
+  });
+  
+  // Append inputs and button to form
+  form.appendChild(emailInput);
+  form.appendChild(passwordInput);
+  form.appendChild(submitButton);
+  
+  return form;
+}
