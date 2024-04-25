@@ -97,6 +97,18 @@ function createLoginButton() {
   return loginButton;
 }
 
+function createLogoutButton() {
+  let button = document.createElement('button');
+  
+  button.textContent = 'Logout';
+  button.addEventListener('click', function() {
+    localStorage.removeItem('sponsorcircle-useremail');
+    window.location.reload();
+  });
+
+  return button;
+}
+
 //////////////////////////////////////
 
 // Function to handle button click event
@@ -158,13 +170,20 @@ async function fetchAllowedDomains() {
 }
 
 
-async function fetchAllowedGroups() {
+async function fetchAllowedGroups(userEmail) {
   const url = "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/getAllGroups";
   const groups = await fetchDataFromServer(url);
 
-  return groups.map((group) => {
-    return group.teamName;
-  })
+  return groups.filter((group) => {
+    const isLeader = group.leader.email === userEmail;
+    const isMember = group.members.some(member => member.email === userEmail);
+    
+    if (isLeader || isMember) {
+      return true;
+    } else {
+      return false;
+    }
+  }).map(group => group.teamName);
 }
 
 async function fetchDefaultCharaties() {
@@ -243,22 +262,24 @@ async function createAppContainer(){
   const isolatedIframe = createIsolatedIframe('400px', '300px');
   isolatedIframe.onload = async function() {
     const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
-
     const loginForm = generateLoginForm();
-
     const greetingDiv = greetUser();
-
     iframeDocument.body.innerHTML = '';
-    if (localStorage.getItem('sponsorcircle-useremail')) {
-        const allowedTeams = await fetchAllowedGroups();
+
+    const userEmail = localStorage.getItem('sponsorcircle-useremail');
+    if (userEmail) {
+        const allowedTeams = await fetchAllowedGroups(userEmail);
         const allowedCharaties = await fetchDefaultCharaties();
 
         const allowedTeamsDropdown = createDropdownWithOptions(allowedTeams, "Your Teams:");
         const allowedCharatiesDropdown = createDropdownWithOptions(allowedCharaties, "Default Charities:");
 
+        const logoutbutton = createLogoutButton();
+
         iframeDocument.body.appendChild(greetingDiv);
         iframeDocument.body.appendChild(allowedTeamsDropdown);
         iframeDocument.body.appendChild(allowedCharatiesDropdown);
+        iframeDocument.body.appendChild(logoutbutton);
     } else {
       iframeDocument.body.appendChild(loginForm);
     }
@@ -321,7 +342,11 @@ function createIsolatedIframe(width, height) {
 function generateLoginForm() {
   // Create form element
   const form = document.createElement('form');
-  
+
+  // Create header
+  const header = document.createElement('div');
+  header.innerText = "LOGIN";
+
   // Create email input
   const emailInput = document.createElement('input');
   emailInput.setAttribute('type', 'email');
@@ -345,11 +370,19 @@ function generateLoginForm() {
       const password = passwordInput.value;
       await loginUser(email, password);
   });
-  
+
+  // Create Register link
+  const register = document.createElement('a');
+  register.innerText = "Register";
+  register.setAttribute('target','_blank');
+  register.href = 'https://sponsorcircle-affiliate.vercel.app/register';
+
   // Append inputs and button to form
+  form.appendChild(header);
   form.appendChild(emailInput);
   form.appendChild(passwordInput);
   form.appendChild(submitButton);
+  form.appendChild(register);
   
   return form;
 }
