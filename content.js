@@ -1,3 +1,5 @@
+const LOCAL_ENV = false;
+
 ////////////////////////////////////
 async function fetchDataFromServer(url) {
   try {
@@ -46,7 +48,7 @@ function createDivContainer() {
 }
 
 // Function to create and style the button
-function createButton() {
+function createActivateButton(allowedBrand, allowedTeamsDropdown) {
   const button = document.createElement('button');
   button.textContent = 'Activate';
   button.style.display = 'block';
@@ -59,6 +61,17 @@ function createButton() {
   button.style.fontFamily = 'Arial, sans-serif';
   button.style.fontSize = '16px';
   button.style.cursor = 'pointer';
+
+  button.addEventListener('click', async function() {
+    const selectedValue = allowedTeamsDropdown.value;
+
+    if (selectedValue !== "------Your Teams-----" || selectedValue!== "-----Default Charities-----") {
+      await applyAffiliateLink(allowedBrand, selectedValue);
+    } else {
+      alert("SELECT A TEAM");
+    }
+  });
+
   return button;
 }
 
@@ -67,6 +80,7 @@ function createDropdownWithOptions(optionsArray, textContent) {
   labelElement.textContent = textContent || 'Select your team:';
 
   var selectElement = document.createElement('select');
+  selectElement.id = "selectedTeam";
 
   optionsArray.forEach(function(optionText) {
     var optionElement = document.createElement('option');
@@ -82,7 +96,7 @@ function createDropdownWithOptions(optionsArray, textContent) {
   containerDiv.style.display = "flex";
   containerDiv.style.justifyContent = "space-between";
 
-  return containerDiv;
+  return { allowedTeamsDropdown: containerDiv, selectElement};
 }
 
 function createLoginButton() {
@@ -110,12 +124,6 @@ function createLogoutButton() {
 }
 
 //////////////////////////////////////
-
-// Function to handle button click event
-function handleButtonClick(affiliateLink) {
-  window.location.href = affiliateLink;
-}
-
 function handleApplyCouponCode(couponCode, maindDiv){
   let discountInput = 
     document.querySelector('input[aria-label="Discount code"]') 
@@ -152,26 +160,24 @@ function handleApplyCouponCode(couponCode, maindDiv){
 // Function to simulate fetching allowed domains with a delay
 async function fetchAllowedDomains() {
 
-  let allowedDomains = localStorage.getItem('sc-allowed-domains');
-  allowedDomains = allowedDomains ? allowedDomains.split(',') : [];
+  let allowedDomains = JSON.parse(localStorage.getItem('sc-allowed-domains')) || null;
 
-  if (allowedDomains && allowedDomains.length !== 0) {
+  if (allowedDomains && Object.keys(allowedDomains).length !== 0) {
     return allowedDomains
   }
 
   console.log("CALLING ALLOWED DOMAINS");
-  const url = "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/allowedDomains";
-  const { allowedDomains: data } = await fetchDataFromServer(url) || [];
+  const url = LOCAL_ENV ? "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/allowedDomains" : "https://alloweddomains-6n7me4jtka-uc.a.run.app";
+  allowedDomains = await fetchDataFromServer(url) || [];
 
-  allowedDomains = data.map((item) => (item.advertiserUrl));
-  localStorage.setItem('sc-allowed-domains', allowedDomains);
+  localStorage.setItem('sc-allowed-domains', JSON.stringify(allowedDomains));
 
   return allowedDomains;
 }
 
 
 async function fetchAllowedGroups(userEmail) {
-  const url = "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/getAllGroups";
+  const url = LOCAL_ENV ? "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/getAllGroups" : "https://getallgroups-6n7me4jtka-uc.a.run.app";
   const groups = await fetchDataFromServer(url);
 
   return groups.filter((group) => {
@@ -187,7 +193,7 @@ async function fetchAllowedGroups(userEmail) {
 }
 
 async function fetchDefaultCharaties() {
-  const url = "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/getDefaultCharities";
+  const url = LOCAL_ENV ? "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/getDefaultCharities" : "https://getdefaultcharities-6n7me4jtka-uc.a.run.app";
   const charities = await fetchDataFromServer(url);
 
   return charities.map(({ data }) => {
@@ -195,30 +201,28 @@ async function fetchDefaultCharaties() {
   })
 }
 
-function isInDomainList(domains, currentURL) {
-    const currentDomain = new URL(currentURL).hostname;
-    return domains.some(domain => currentDomain.includes(domain));
+function getAllowedBrandInfo(allowedDomainsWithIds) {
+  const currentWebsiteUrl = window.location.href;
+
+  for (const [url, id] of Object.entries(allowedDomainsWithIds)) {
+    if (currentWebsiteUrl.includes(url)) {
+      return { url, id };
+    }
+  }
+
+  return null;
 }
 
-
-//////////////////////////
+/////////////////////////////////////////////////////////////
 async function initialize() {
-  const allowedDomains = await fetchAllowedDomains();
-  const currentHostname = window.location.href;
-
-  const codeAlreadyAppliedToURL = window.location.href.includes("irclickid");
-  const allowedBrand = isInDomainList(allowedDomains, currentHostname);
+  const allowedDomainsWithIds = await fetchAllowedDomains();
+  
+  
+  const codeAlreadyAppliedToURL = window.location.href.includes("irclickid") || window.location.href.includes("clickid");;
+  const allowedBrand = getAllowedBrandInfo(allowedDomainsWithIds);
 
   if (allowedBrand && !codeAlreadyAppliedToURL) {
-    await createAppContainer();
-    // const div = createDivContainer();
-    // const dropdown = createDropdownWithOptions(allowedTeams);
-    // const button = createButton();
-    // button.addEventListener('click', () => handleButtonClick(matchedDomain.affiliateLink));
-    
-    // div.appendChild(dropdown);
-    // div.appendChild(button);
-    // document.body.appendChild(div);
+    await createAppContainer(allowedBrand);
   }
 
   // if (matchedDomain && matchedDomain?.couponCode) {
@@ -249,36 +253,30 @@ async function initialize() {
   //     document.body.appendChild(div);
   //   }
   // }
-
-  // Call the function to reproduce the section content and store the result
-  // const reproducedIframe = reproduceSectionContent();
-
-  // // Append the reproduced iframe to the document body or any other container
-  // document.body.appendChild(reproducedIframe);
-
 }
 
-async function createAppContainer(){
+async function createAppContainer(allowedBrand){
   const isolatedIframe = createIsolatedIframe('400px', '300px');
   isolatedIframe.onload = async function() {
     const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
     const loginForm = generateLoginForm();
     const greetingDiv = greetUser();
     iframeDocument.body.innerHTML = '';
-
     const userEmail = localStorage.getItem('sponsorcircle-useremail');
     if (userEmail) {
         const allowedTeams = await fetchAllowedGroups(userEmail);
         const allowedCharaties = await fetchDefaultCharaties();
 
-        const allowedTeamsDropdown = createDropdownWithOptions(allowedTeams, "Your Teams:");
-        const allowedCharatiesDropdown = createDropdownWithOptions(allowedCharaties, "Default Charities:");
+        const { allowedTeamsDropdown, selectElement } = createDropdownWithOptions(["------Your Teams-----" ,...allowedTeams, "-----Default Charities-----", ...allowedCharaties], "Pick A Team:");
+        console.log("=====>", allowedTeamsDropdown.value);
 
+        const activateButton = createActivateButton(allowedBrand, selectElement);
         const logoutbutton = createLogoutButton();
 
         iframeDocument.body.appendChild(greetingDiv);
         iframeDocument.body.appendChild(allowedTeamsDropdown);
-        iframeDocument.body.appendChild(allowedCharatiesDropdown);
+        // iframeDocument.body.appendChild(allowedCharatiesDropdown);
+        iframeDocument.body.appendChild(activateButton);
         iframeDocument.body.appendChild(logoutbutton);
     } else {
       iframeDocument.body.appendChild(loginForm);
@@ -338,6 +336,25 @@ function createIsolatedIframe(width, height) {
   return iframe;
 }
 
+// TODO: 
+function createCloseButton(iframe){
+  // Close button
+  const closeButton = document.createElement('button');
+  closeButton.textContent = 'X';
+  closeButton.style.position = 'absolute';
+  closeButton.style.top = '10px';
+  closeButton.style.right = '10px';
+  closeButton.style.backgroundColor = 'transparent';
+  closeButton.style.border = 'none';
+  closeButton.style.cursor = 'pointer';
+  closeButton.style.fontSize = '20px';
+  closeButton.style.color = '#333';
+  closeButton.onclick = function() {
+    iframe.style.display = 'none';
+  };
+  iframe.appendChild(closeButton);
+}
+
 
 function generateLoginForm() {
   // Create form element
@@ -389,7 +406,7 @@ function generateLoginForm() {
 
 
 async function loginUser(email, password) {
-    const url = 'http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/loginUser';
+    const url = LOCAL_ENV ? 'http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/loginUser': "https://loginuser-6n7me4jtka-uc.a.run.app";
 
     const data = {
         email: email,
@@ -419,4 +436,28 @@ async function loginUser(email, password) {
         alert('Failed to login');
         return { error };
     }
+}
+
+
+async function applyAffiliateLink(allowedBrand, selectedTeam){
+  if (selectedTeam === "------Your Teams-----" || selectedTeam === "-----Default Charities-----") {
+    alert("PICK A TEAM");
+    return
+  }
+  const programId = allowedBrand.id;
+  const url = LOCAL_ENV ? `http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/applyTrackingLink?programId=${programId}&teamName=${selectedTeam}` 
+      : `https://applytrackinglink-6n7me4jtka-uc.a.run.app?programId=${programId}&teamName=${selectedTeam}`;
+
+  // const data = await fetchDataFromServer(url);
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    const responseData = await response.json();
+    window.location.href = "http://" + responseData;
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    throw error; // Propagate the error to the caller if needed
+  }
 }
