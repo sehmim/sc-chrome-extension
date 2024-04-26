@@ -46,7 +46,7 @@ function createDivContainer() {
 }
 
 // Function to create and style the button
-function createButton() {
+function createActivateButton(allowedBrand, allowedTeamsDropdown) {
   const button = document.createElement('button');
   button.textContent = 'Activate';
   button.style.display = 'block';
@@ -59,6 +59,17 @@ function createButton() {
   button.style.fontFamily = 'Arial, sans-serif';
   button.style.fontSize = '16px';
   button.style.cursor = 'pointer';
+
+  button.addEventListener('click', async function() {
+    const selectedValue = allowedTeamsDropdown.value;
+
+    if (selectedValue !== "------Your Teams-----" || selectedValue!== "-----Default Charities-----") {
+      await applyAffiliateLink(allowedBrand, selectedValue);
+    } else {
+      alert("SELECT A TEAM");
+    }
+  });
+
   return button;
 }
 
@@ -67,6 +78,7 @@ function createDropdownWithOptions(optionsArray, textContent) {
   labelElement.textContent = textContent || 'Select your team:';
 
   var selectElement = document.createElement('select');
+  selectElement.id = "selectedTeam";
 
   optionsArray.forEach(function(optionText) {
     var optionElement = document.createElement('option');
@@ -82,7 +94,15 @@ function createDropdownWithOptions(optionsArray, textContent) {
   containerDiv.style.display = "flex";
   containerDiv.style.justifyContent = "space-between";
 
-  return containerDiv;
+  // selectElement.addEventListener('change', function() {
+  //   // Get the selected value
+  //   var selectedValue = selectElement.value;
+    
+  //   // Use the selectedValue as needed
+  //   console.log('Selected value:', selectedValue);
+  // }); 
+
+  return { allowedTeamsDropdown: containerDiv, selectElement};
 }
 
 function createLoginButton() {
@@ -110,12 +130,6 @@ function createLogoutButton() {
 }
 
 //////////////////////////////////////
-
-// Function to handle button click event
-function handleButtonClick(affiliateLink) {
-  window.location.href = affiliateLink;
-}
-
 function handleApplyCouponCode(couponCode, maindDiv){
   let discountInput = 
     document.querySelector('input[aria-label="Discount code"]') 
@@ -152,19 +166,17 @@ function handleApplyCouponCode(couponCode, maindDiv){
 // Function to simulate fetching allowed domains with a delay
 async function fetchAllowedDomains() {
 
-  let allowedDomains = localStorage.getItem('sc-allowed-domains');
-  allowedDomains = allowedDomains ? allowedDomains.split(',') : [];
+  let allowedDomains = JSON.parse(localStorage.getItem('sc-allowed-domains')) || null;
 
-  if (allowedDomains && allowedDomains.length !== 0) {
+  if (allowedDomains && Object.keys(allowedDomains).length !== 0) {
     return allowedDomains
   }
 
   console.log("CALLING ALLOWED DOMAINS");
   const url = "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/allowedDomains";
-  const { allowedDomains: data } = await fetchDataFromServer(url) || [];
+  allowedDomains = await fetchDataFromServer(url) || [];
 
-  allowedDomains = data.map((item) => (item.advertiserUrl));
-  localStorage.setItem('sc-allowed-domains', allowedDomains);
+  localStorage.setItem('sc-allowed-domains', JSON.stringify(allowedDomains));
 
   return allowedDomains;
 }
@@ -195,22 +207,45 @@ async function fetchDefaultCharaties() {
   })
 }
 
-function isInDomainList(domains, currentURL) {
-    const currentDomain = new URL(currentURL).hostname;
-    return domains.some(domain => currentDomain.includes(domain));
-}
+// function getAllowedBrandInfo(allowedDomainsWithIds, currentURL) {
+//   const domainsHostnamesWithIds = allowedDomainsWithIds.map(({domain, id}) => {
+//     return {
+//       domain: new URL(domain).hostname,
+//       id,
+//     }
+//   });
 
+//   const allowedBrandInfo = null;
+
+//   domainsHostnamesWithIds.map(({domain, id}) => {
+//     if (domain === currentURL) {
+//       allowedBrandInfo = 
+//     }
+//   })
+// }
+
+function getAllowedBrandInfo(allowedDomainsWithIds) {
+  const currentWebsiteUrl = window.location.href;
+
+  for (const [url, id] of Object.entries(allowedDomainsWithIds)) {
+    if (currentWebsiteUrl.includes(url)) {
+      return { url, id };
+    }
+  }
+
+  return null;
+}
 
 //////////////////////////
 async function initialize() {
-  const allowedDomains = await fetchAllowedDomains();
-  const currentHostname = window.location.href;
-
-  const codeAlreadyAppliedToURL = window.location.href.includes("irclickid");
-  const allowedBrand = isInDomainList(allowedDomains, currentHostname);
+  const allowedDomainsWithIds = await fetchAllowedDomains();
+  
+  
+  const codeAlreadyAppliedToURL = window.location.href.includes("irclickid") || window.location.href.includes("clickid");;
+  const allowedBrand = getAllowedBrandInfo(allowedDomainsWithIds);
 
   if (allowedBrand && !codeAlreadyAppliedToURL) {
-    await createAppContainer();
+    await createAppContainer(allowedBrand);
     // const div = createDivContainer();
     // const dropdown = createDropdownWithOptions(allowedTeams);
     // const button = createButton();
@@ -258,27 +293,28 @@ async function initialize() {
 
 }
 
-async function createAppContainer(){
+async function createAppContainer(allowedBrand){
   const isolatedIframe = createIsolatedIframe('400px', '300px');
   isolatedIframe.onload = async function() {
     const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
     const loginForm = generateLoginForm();
     const greetingDiv = greetUser();
     iframeDocument.body.innerHTML = '';
-
     const userEmail = localStorage.getItem('sponsorcircle-useremail');
     if (userEmail) {
         const allowedTeams = await fetchAllowedGroups(userEmail);
         const allowedCharaties = await fetchDefaultCharaties();
 
-        const allowedTeamsDropdown = createDropdownWithOptions(allowedTeams, "Your Teams:");
-        const allowedCharatiesDropdown = createDropdownWithOptions(allowedCharaties, "Default Charities:");
+        const { allowedTeamsDropdown, selectElement } = createDropdownWithOptions(["------Your Teams-----" ,...allowedTeams, "-----Default Charities-----", ...allowedCharaties], "Pick A Team:");
+        console.log("=====>", allowedTeamsDropdown.value);
 
+        const activateButton = createActivateButton(allowedBrand, selectElement);
         const logoutbutton = createLogoutButton();
 
         iframeDocument.body.appendChild(greetingDiv);
         iframeDocument.body.appendChild(allowedTeamsDropdown);
-        iframeDocument.body.appendChild(allowedCharatiesDropdown);
+        // iframeDocument.body.appendChild(allowedCharatiesDropdown);
+        iframeDocument.body.appendChild(activateButton);
         iframeDocument.body.appendChild(logoutbutton);
     } else {
       iframeDocument.body.appendChild(loginForm);
@@ -336,6 +372,25 @@ function createIsolatedIframe(width, height) {
 
   // Return the created iframe
   return iframe;
+}
+
+// TODO: 
+function createCloseButton(iframe){
+  // Close button
+  const closeButton = document.createElement('button');
+  closeButton.textContent = 'X';
+  closeButton.style.position = 'absolute';
+  closeButton.style.top = '10px';
+  closeButton.style.right = '10px';
+  closeButton.style.backgroundColor = 'transparent';
+  closeButton.style.border = 'none';
+  closeButton.style.cursor = 'pointer';
+  closeButton.style.fontSize = '20px';
+  closeButton.style.color = '#333';
+  closeButton.onclick = function() {
+    iframe.style.display = 'none';
+  };
+  iframe.appendChild(closeButton);
 }
 
 
@@ -419,4 +474,17 @@ async function loginUser(email, password) {
         alert('Failed to login');
         return { error };
     }
+}
+
+
+async function applyAffiliateLink(allowedBrand, selectedTeam){
+  if (selectedTeam === "------Your Teams-----" || selectedTeam === "-----Default Charities-----") {
+    alert("PICK A TEAM");
+    return
+  }
+  const programId = allowedBrand.id;
+  const url = `http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/applyTrackingLink?programId=${programId}&teamName=${selectedTeam}`;
+
+  const data = await fetchDataFromServer(url);
+  window.location.href = "http://" + data;
 }
