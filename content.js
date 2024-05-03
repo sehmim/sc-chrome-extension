@@ -1,4 +1,14 @@
-const LOCAL_ENV = false;
+// chrome.storage.local.get('userInfo', (data) => {
+//   const userInfo = data.userInfo;
+//   if (userInfo) {
+//     // Do something with the user information
+//     console.log('User information:', userInfo);
+//   } else {
+//     console.log('User information not found.');
+//   }
+// });
+
+const LOCAL_ENV = true;
 
 ////////////////////////////////////
 async function fetchDataFromServer(url) {
@@ -64,12 +74,7 @@ function createActivateButton(allowedBrand, allowedTeamsDropdown) {
 
   button.addEventListener('click', async function() {
     const selectedValue = allowedTeamsDropdown.value;
-
-    if (selectedValue !== "------Your Teams-----" || selectedValue!== "-----Default Charities-----") {
-      await applyAffiliateLink(allowedBrand, selectedValue);
-    } else {
-      alert("SELECT A TEAM");
-    }
+    await applyAffiliateLink(allowedBrand, selectedValue);
   });
 
   return button;
@@ -157,24 +162,6 @@ function handleApplyCouponCode(couponCode, maindDiv){
     }, 300);
   }
 
-// Function to simulate fetching allowed domains with a delay
-async function fetchAllowedDomains() {
-
-  let allowedDomains = JSON.parse(localStorage.getItem('sc-allowed-domains')) || null;
-
-  if (allowedDomains && Object.keys(allowedDomains).length !== 0) {
-    return allowedDomains
-  }
-
-  console.log("CALLING ALLOWED DOMAINS");
-  const url = LOCAL_ENV ? "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/allowedDomains" : "https://alloweddomains-6n7me4jtka-uc.a.run.app";
-  allowedDomains = await fetchDataFromServer(url) || [];
-
-  localStorage.setItem('sc-allowed-domains', JSON.stringify(allowedDomains));
-
-  return allowedDomains;
-}
-
 
 async function fetchAllowedGroups(userEmail) {
   const url = LOCAL_ENV ? "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/getAllGroups" : "https://getallgroups-6n7me4jtka-uc.a.run.app";
@@ -216,14 +203,17 @@ function getAllowedBrandInfo(allowedDomainsWithIds) {
 /////////////////////////////////////////////////////////////
 async function initialize() {
   const allowedDomainsWithIds = await fetchAllowedDomains();
-  
-  
-  const codeAlreadyAppliedToURL = window.location.href.includes("irclickid") || window.location.href.includes("clickid");;
-  const allowedBrand = getAllowedBrandInfo(allowedDomainsWithIds);
 
-  if (allowedBrand && !codeAlreadyAppliedToURL) {
-    await createAppContainer(allowedBrand);
-  }
+  console.log("allowedDomainsWithIds ->", allowedDomainsWithIds);
+
+  applyGoogleSearchDiscounts(allowedDomainsWithIds);
+
+  // const codeAlreadyAppliedToURL = window.location.href.includes("irclickid") || window.location.href.includes("clickid");;
+  // const allowedBrand = getAllowedBrandInfo(allowedDomainsWithIds);
+
+  // if (allowedBrand && !codeAlreadyAppliedToURL) {
+  //   await createAppContainer(allowedBrand);
+  // }
 
   // if (matchedDomain && matchedDomain?.couponCode) {
   //   if (window.location.href.includes("checkouts")) {
@@ -255,30 +245,46 @@ async function initialize() {
   // }
 }
 
+function getUserInfo() {
+
+  console.log("chrome ----->", chrome);
+  // chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  //   const activeTab = tabs[0];
+  //   chrome.tabs.sendMessage(activeTab.id, { type: 'USER_EMAIL', payload: 'user@example.com' });
+  // });
+}
+
 async function createAppContainer(allowedBrand){
   const isolatedIframe = createIsolatedIframe('400px', '300px');
   isolatedIframe.onload = async function() {
+    getUserInfo();
+
     const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
     const loginForm = generateLoginForm();
     const greetingDiv = greetUser();
+    const closeButton = createCloseButton(isolatedIframe);
+
     iframeDocument.body.innerHTML = '';
     const userEmail = localStorage.getItem('sponsorcircle-useremail');
     if (userEmail) {
         const allowedTeams = await fetchAllowedGroups(userEmail);
         const allowedCharaties = await fetchDefaultCharaties();
 
-        const { allowedTeamsDropdown, selectElement } = createDropdownWithOptions(["------Your Teams-----" ,...allowedTeams, "-----Default Charities-----", ...allowedCharaties], "Pick A Team:");
-        console.log("=====>", allowedTeamsDropdown.value);
+        // const teamsCobined = ["------Your Teams-----" ,...allowedTeams, "-----Default Charities-----", ...allowedCharaties];
+
+        const { allowedTeamsDropdown, selectElement } = createDropdownWithOptions(allowedCharaties, "Pick A Team:");
 
         const activateButton = createActivateButton(allowedBrand, selectElement);
         const logoutbutton = createLogoutButton();
 
+        iframeDocument.body.appendChild(closeButton);
         iframeDocument.body.appendChild(greetingDiv);
         iframeDocument.body.appendChild(allowedTeamsDropdown);
         // iframeDocument.body.appendChild(allowedCharatiesDropdown);
         iframeDocument.body.appendChild(activateButton);
         iframeDocument.body.appendChild(logoutbutton);
     } else {
+      iframeDocument.body.appendChild(closeButton);
       iframeDocument.body.appendChild(loginForm);
     }
   };
@@ -295,9 +301,9 @@ function greetUser() {
   }
 }
 
-initialize().then(() => {
-  console.log("INITIALZIED")
-});
+// initialize().then(() => {
+//   console.log("INITIALZIED")
+// });
 
 
 function createIsolatedIframe(width, height) {
@@ -337,22 +343,20 @@ function createIsolatedIframe(width, height) {
 }
 
 // TODO: 
-function createCloseButton(iframe){
-  // Close button
-  const closeButton = document.createElement('button');
-  closeButton.textContent = 'X';
-  closeButton.style.position = 'absolute';
-  closeButton.style.top = '10px';
-  closeButton.style.right = '10px';
-  closeButton.style.backgroundColor = 'transparent';
-  closeButton.style.border = 'none';
-  closeButton.style.cursor = 'pointer';
-  closeButton.style.fontSize = '20px';
-  closeButton.style.color = '#333';
-  closeButton.onclick = function() {
-    iframe.style.display = 'none';
-  };
-  iframe.appendChild(closeButton);
+function createCloseButton(iframe) {
+    const closeButton = document.createElement('div');
+    closeButton.innerHTML = 'X';
+    closeButton.style.position = 'absolute';
+    closeButton.style.top = '5px';
+    closeButton.style.right = '5px';
+    closeButton.style.cursor = 'pointer';
+    closeButton.style.padding = '5px';
+    closeButton.style.backgroundColor = 'red';
+    closeButton.style.color = 'white';
+    closeButton.addEventListener('click', function() {
+        iframe.style.display = 'none'; // Hide the iframe when close button is clicked
+    });
+    return closeButton;
 }
 
 
@@ -461,3 +465,72 @@ async function applyAffiliateLink(allowedBrand, selectedTeam){
     throw error; // Propagate the error to the caller if needed
   }
 }
+
+
+// applyGoogleSearchDiscounts();
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', applyImpactLink);
+}
+
+
+
+
+
+async function main(){
+  function applyGoogleSearchDiscounts(allowedDomainsWithIds) {
+
+    const searchResults = document.querySelectorAll('div.g');
+
+    searchResults.forEach(result => {
+      const url = result.querySelector('a[href^="http"]').href;
+      const domain = new URL(url).hostname;
+
+      for (const [url, id] of Object.entries(allowedDomainsWithIds)) {
+        const allowedDomain = new URL(url).hostname;
+
+        if (domain.includes(allowedDomain)) {
+          // Add a tag
+          const affiliateLinkWrapper = document.createElement('a');
+
+          const img = document.createElement('img');
+          img.src = "https://sponsorcircle.com/wp-content/uploads/2021/02/sponsor-circle-black-transparent-1.png";
+          img.width = "50";
+
+          const link = document.createElement('a');
+          link.href = 'https://sponsorcircle.com/';
+          link.innerText = 'Give 5% to your cause 💜';
+
+          affiliateLinkWrapper.appendChild(img);
+          affiliateLinkWrapper.appendChild(link);
+
+          result.insertBefore(affiliateLinkWrapper, result.firstChild);
+        }
+      }
+    });
+  }
+
+  // Function to simulate fetching allowed domains with a delay
+  async function fetchAllowedDomains() {
+
+    let allowedDomains = JSON.parse(localStorage.getItem('sc-allowed-domains')) || null;
+
+    if (allowedDomains && Object.keys(allowedDomains).length !== 0) {
+      return allowedDomains
+    }
+
+    console.log("CALLING ALLOWED DOMAINS");
+    const url = LOCAL_ENV ? "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/allowedDomains" : "https://alloweddomains-6n7me4jtka-uc.a.run.app";
+    allowedDomains = await fetchDataFromServer(url) || [];
+
+    localStorage.setItem('sc-allowed-domains', JSON.stringify(allowedDomains));
+
+    return allowedDomains;
+  }
+
+
+  const allowedDomains = await fetchAllowedDomains();
+  applyGoogleSearchDiscounts(allowedDomains);
+}
+
+main();
