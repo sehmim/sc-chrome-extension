@@ -206,14 +206,14 @@ async function initialize() {
 
   console.log("allowedDomainsWithIds ->", allowedDomainsWithIds);
 
-  applyGoogleSearchDiscounts(allowedDomainsWithIds);
+  // applyGoogleSearchDiscounts(allowedDomainsWithIds);
 
-  // const codeAlreadyAppliedToURL = window.location.href.includes("irclickid") || window.location.href.includes("clickid");;
-  // const allowedBrand = getAllowedBrandInfo(allowedDomainsWithIds);
+  const codeAlreadyAppliedToURL = window.location.href.includes("irclickid") || window.location.href.includes("clickid");;
+  const allowedBrand = getAllowedBrandInfo(allowedDomainsWithIds);
 
-  // if (allowedBrand && !codeAlreadyAppliedToURL) {
-  //   await createAppContainer(allowedBrand);
-  // }
+  if (allowedBrand && !codeAlreadyAppliedToURL) {
+    await createAppContainer(allowedBrand);
+  }
 
   // if (matchedDomain && matchedDomain?.couponCode) {
   //   if (window.location.href.includes("checkouts")) {
@@ -255,38 +255,49 @@ function getUserInfo() {
 }
 
 async function createAppContainer(allowedBrand){
-  const isolatedIframe = createIsolatedIframe('400px', '300px');
+  const isolatedIframe = createIsolatedIframe('400px', '100px');
   isolatedIframe.onload = async function() {
-    getUserInfo();
+    // TODO: CHECK IF LOGGED IN
+    // getUserInfo();
+
+    const leftDiv = createLeftDiv();
+    const rightDiv = createRightDiv(isolatedIframe);
 
     const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
-    const loginForm = generateLoginForm();
-    const greetingDiv = greetUser();
-    const closeButton = createCloseButton(isolatedIframe);
-
     iframeDocument.body.innerHTML = '';
-    const userEmail = localStorage.getItem('sponsorcircle-useremail');
-    if (userEmail) {
-        const allowedTeams = await fetchAllowedGroups(userEmail);
-        const allowedCharaties = await fetchDefaultCharaties();
+    iframeDocument.body.style.display = 'flex';
+    iframeDocument.body.style.margin = '0px';
 
-        // const teamsCobined = ["------Your Teams-----" ,...allowedTeams, "-----Default Charities-----", ...allowedCharaties];
+    iframeDocument.body.appendChild(leftDiv);
+    iframeDocument.body.appendChild(rightDiv);
 
-        const { allowedTeamsDropdown, selectElement } = createDropdownWithOptions(allowedCharaties, "Pick A Team:");
 
-        const activateButton = createActivateButton(allowedBrand, selectElement);
-        const logoutbutton = createLogoutButton();
+    // const loginForm = generateLoginForm();
+    // const greetingDiv = greetUser();
+    // const closeButton = createCloseButton(isolatedIframe);
 
-        iframeDocument.body.appendChild(closeButton);
-        iframeDocument.body.appendChild(greetingDiv);
-        iframeDocument.body.appendChild(allowedTeamsDropdown);
-        // iframeDocument.body.appendChild(allowedCharatiesDropdown);
-        iframeDocument.body.appendChild(activateButton);
-        iframeDocument.body.appendChild(logoutbutton);
-    } else {
-      iframeDocument.body.appendChild(closeButton);
-      iframeDocument.body.appendChild(loginForm);
-    }
+    // const userEmail = localStorage.getItem('sponsorcircle-useremail');
+    // if (userEmail) {
+    //     const allowedTeams = await fetchAllowedGroups(userEmail);
+    //     const allowedCharaties = await fetchDefaultCharaties();
+
+    //     // const teamsCobined = ["------Your Teams-----" ,...allowedTeams, "-----Default Charities-----", ...allowedCharaties];
+
+    //     const { allowedTeamsDropdown, selectElement } = createDropdownWithOptions(allowedCharaties, "Pick A Team:");
+
+    //     const activateButton = createActivateButton(allowedBrand, selectElement);
+    //     const logoutbutton = createLogoutButton();
+
+    //     iframeDocument.body.appendChild(closeButton);
+    //     iframeDocument.body.appendChild(greetingDiv);
+    //     iframeDocument.body.appendChild(allowedTeamsDropdown);
+    //     // iframeDocument.body.appendChild(allowedCharatiesDropdown);
+    //     iframeDocument.body.appendChild(activateButton);
+    //     iframeDocument.body.appendChild(logoutbutton);
+    // } else {
+    //   iframeDocument.body.appendChild(closeButton);
+    //   iframeDocument.body.appendChild(loginForm);
+    // }
   };
   document.body.appendChild(isolatedIframe);
 } 
@@ -301,46 +312,12 @@ function greetUser() {
   }
 }
 
-// initialize().then(() => {
-//   console.log("INITIALZIED")
-// });
+initialize().then(() => {
+  console.log("INITIALZIED")
+});
 
 
-function createIsolatedIframe(width, height) {
-  // Create a new iframe element
-  const iframe = document.createElement('iframe');
 
-  // Set attributes for the iframe
-  iframe.setAttribute('src', 'about:blank'); // Load a blank page initially
-
-  // Set inline styles for the iframe
-  iframe.style.position = 'fixed';
-  iframe.style.top = '30%';
-  iframe.style.left = '85%';
-  iframe.style.transform = 'translate(-50%, -50%)';
-  iframe.style.width = width;
-  iframe.style.height = height;
-  iframe.style.border = 'none';
-  iframe.style.backgroundColor = '#fff';
-  iframe.style.borderRadius = '8px';
-  iframe.style.boxShadow = '0px 0px 10px rgba(0, 0, 0, 0.1)';
-
-  // Access the document within the iframe
-  const iframeDocument = iframe.contentDocument;
-
-  // If the iframe document is not null
-  if (iframeDocument) {
-    // Apply some default styles to the iframe content to ensure isolation
-    iframeDocument.body.style.margin = '0';
-    iframeDocument.body.style.padding = '20px';
-    iframeDocument.body.style.fontFamily = 'Arial, sans-serif';
-    iframeDocument.body.style.fontSize = '16px';
-    iframeDocument.body.style.color = '#333';
-  }
-
-  // Return the created iframe
-  return iframe;
-}
 
 // TODO: 
 function createCloseButton(iframe) {
@@ -473,64 +450,239 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', applyImpactLink);
 }
 
+async function fetchAllowedDomains() {
 
+  let allowedDomains = JSON.parse(localStorage.getItem('sc-allowed-domains')) || null;
 
-
-
-async function main(){
-  function applyGoogleSearchDiscounts(allowedDomainsWithIds) {
-
-    const searchResults = document.querySelectorAll('div.g');
-
-    searchResults.forEach(result => {
-      const url = result.querySelector('a[href^="http"]').href;
-      const domain = new URL(url).hostname;
-
-      for (const [url, id] of Object.entries(allowedDomainsWithIds)) {
-        const allowedDomain = new URL(url).hostname;
-
-        if (domain.includes(allowedDomain)) {
-          // Add a tag
-          const affiliateLinkWrapper = document.createElement('a');
-
-          const img = document.createElement('img');
-          img.src = "https://sponsorcircle.com/wp-content/uploads/2021/02/sponsor-circle-black-transparent-1.png";
-          img.width = "50";
-
-          const link = document.createElement('a');
-          link.href = 'https://sponsorcircle.com/';
-          link.innerText = 'Give 5% to your cause 💜';
-
-          affiliateLinkWrapper.appendChild(img);
-          affiliateLinkWrapper.appendChild(link);
-
-          result.insertBefore(affiliateLinkWrapper, result.firstChild);
-        }
-      }
-    });
+  if (allowedDomains && Object.keys(allowedDomains).length !== 0) {
+    return allowedDomains
   }
 
-  // Function to simulate fetching allowed domains with a delay
-  async function fetchAllowedDomains() {
+  console.log("CALLING ALLOWED DOMAINS");
+  const url = LOCAL_ENV ? "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/allowedDomains" : "https://alloweddomains-6n7me4jtka-uc.a.run.app";
+  allowedDomains = await fetchDataFromServer(url) || [];
 
-    let allowedDomains = JSON.parse(localStorage.getItem('sc-allowed-domains')) || null;
+  localStorage.setItem('sc-allowed-domains', JSON.stringify(allowedDomains));
 
-    if (allowedDomains && Object.keys(allowedDomains).length !== 0) {
-      return allowedDomains
-    }
-
-    console.log("CALLING ALLOWED DOMAINS");
-    const url = LOCAL_ENV ? "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/allowedDomains" : "https://alloweddomains-6n7me4jtka-uc.a.run.app";
-    allowedDomains = await fetchDataFromServer(url) || [];
-
-    localStorage.setItem('sc-allowed-domains', JSON.stringify(allowedDomains));
-
-    return allowedDomains;
-  }
-
-
-  const allowedDomains = await fetchAllowedDomains();
-  applyGoogleSearchDiscounts(allowedDomains);
+  return allowedDomains;
 }
 
-main();
+
+
+// async function main(){
+//   function applyGoogleSearchDiscounts(allowedDomainsWithIds) {
+
+//     const searchResults = document.querySelectorAll('div.g');
+
+//     searchResults.forEach(result => {
+//       const url = result.querySelector('a[href^="http"]').href;
+//       const domain = new URL(url).hostname;
+
+//       for (const [url, id] of Object.entries(allowedDomainsWithIds)) {
+//         const allowedDomain = new URL(url).hostname;
+
+//         if (domain.includes(allowedDomain)) {
+//           // Add a tag
+//           const affiliateLinkWrapper = document.createElement('a');
+
+//           const img = document.createElement('img');
+//           img.src = "https://sponsorcircle.com/wp-content/uploads/2021/02/sponsor-circle-black-transparent-1.png";
+//           img.width = "50";
+
+//           const link = document.createElement('a');
+//           link.href = 'https://sponsorcircle.com/';
+//           link.innerText = 'Give 5% to your cause 💜';
+
+//           affiliateLinkWrapper.appendChild(img);
+//           affiliateLinkWrapper.appendChild(link);
+
+//           result.insertBefore(affiliateLinkWrapper, result.firstChild);
+//         }
+//       }
+//     });
+//   }
+
+//   // Function to simulate fetching allowed domains with a delay
+//   async function fetchAllowedDomains() {
+
+//     let allowedDomains = JSON.parse(localStorage.getItem('sc-allowed-domains')) || null;
+
+//     if (allowedDomains && Object.keys(allowedDomains).length !== 0) {
+//       return allowedDomains
+//     }
+
+//     console.log("CALLING ALLOWED DOMAINS");
+//     const url = LOCAL_ENV ? "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/allowedDomains" : "https://alloweddomains-6n7me4jtka-uc.a.run.app";
+//     allowedDomains = await fetchDataFromServer(url) || [];
+
+//     localStorage.setItem('sc-allowed-domains', JSON.stringify(allowedDomains));
+
+//     return allowedDomains;
+//   }
+
+
+//   const allowedDomains = await fetchAllowedDomains();
+//   applyGoogleSearchDiscounts(allowedDomains);
+// }
+
+// main();
+
+
+
+
+
+
+
+
+///////////////////////////// DIVS FOR NEW DESIGN //////////////////////////////////
+function createIsolatedIframe(width, height) {
+  // Create a new iframe element
+  const iframe = document.createElement('iframe');
+
+  // Set attributes for the iframe
+  iframe.setAttribute('src', 'about:blank'); // Load a blank page initially
+
+  // Set inline styles for the iframe
+  iframe.style.position = 'fixed';
+  iframe.style.top = '30%';
+  iframe.style.left = '85%';
+  iframe.style.transform = 'translate(-50%, -50%)';
+  iframe.style.width = width;
+  iframe.style.height = height;
+  iframe.style.border = 'none';
+  iframe.style.backgroundColor = '#FDFDFD';
+  iframe.style.borderRadius = '16px';
+  iframe.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+  iframe.style.display = 'flex';
+
+
+  // Access the document within the iframe
+  const iframeDocument = iframe.contentDocument;
+
+  // If the iframe document is not null
+  if (iframeDocument) {
+    // Apply some default styles to the iframe content to ensure isolation
+    iframeDocument.body.style.margin = '0';
+    iframeDocument.body.style.padding = '20px';
+    iframeDocument.body.style.fontFamily = 'Arial, sans-serif';
+    iframeDocument.body.style.fontSize = '16px';
+    iframeDocument.body.style.color = '#333';
+  }
+
+  // Return the created iframe
+  return iframe;
+}
+
+
+function createLeftDiv() {
+    var div = document.createElement("div");
+    div.style.width = "30%";
+    div.style.height = "100%";
+    div.style.display = "flex"; // Use flexbox
+    div.style.alignItems = "center"; // Center the content vertically
+    div.style.justifyContent = "center"; // Center the content horizontally
+    div.style.flexDirection = "column";
+    div.style.background = "#2C0593";
+
+    // Create a div to wrap the first two images
+    var imagesWrapper = document.createElement("div");
+    imagesWrapper.style.display = "flex"; // Use flexbox
+    imagesWrapper.style.flexDirection = "row"; // Arrange images horizontally
+    imagesWrapper.style.alignItems = "center"; // Center the images vertically
+
+    // Create the first image
+    var image1 = document.createElement("img");
+    image1.src = "https://i.imgur.com/Oj6PnUe.png";
+    image1.style.borderRadius = "8px";
+    image1.style.width = "47px";
+
+    // Create the second image
+    var image2Wrapper = document.createElement("div");
+    image2Wrapper.style.width = "50px";
+    image2Wrapper.style.borderRadius = "8px";
+    image2Wrapper.style.height = "100%";
+    image2Wrapper.style.background = "white";
+    image2Wrapper.style.display = "flex";
+    image2Wrapper.style.marginLeft = "5px";
+
+    var image2 = document.createElement("img");
+    image2.src = "https://i.imgur.com/WGbvcpd.png";
+    image2.style.borderRadius = "8px";
+    image2.style.width = "37px";
+    image2.style.margin = "auto";
+
+    image2Wrapper.appendChild(image2);
+
+    // Append the first two images to the images wrapper div
+    imagesWrapper.appendChild(image1);
+    imagesWrapper.appendChild(image2Wrapper);
+
+    // Create the third image
+    var image3 = document.createElement("img");
+    image3.src = "https://i.imgur.com/xobrrSH.png"; // Replace with actual image URL
+    image3.style.width = "90%";
+
+    // Append the images wrapper and the third image to the left div
+    div.appendChild(imagesWrapper);
+    div.appendChild(image3);
+
+    return div;
+}
+
+function createRightDiv(isolatedIframe) {
+    var div = document.createElement("div");
+    div.style.width = "70%";
+    div.style.height = "100%";
+    div.style.display = "flex";
+
+        // Create and append close button
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'X';
+    closeButton.style.position = 'absolute';
+    closeButton.style.top = '5px';
+    closeButton.style.right = '3px';
+    closeButton.style.backgroundColor = 'transparent';
+    closeButton.style.border = 'none';
+    closeButton.style.cursor = 'pointer';
+    closeButton.style.fontSize = '15px';
+    closeButton.style.color = '#333';
+    closeButton.onclick = function() {
+      isolatedIframe.style.display = 'none';
+    };
+    div.appendChild(closeButton);
+
+    var button = document.createElement("button");
+    button.style.borderRadius = "21px";
+    button.style.border = "1px solid rgb(0, 0, 0)";
+    button.style.background = "rgba(44, 5, 147, 0.21)";
+    button.style.height = "40px";
+    button.style.width = "80%";
+    button.style.margin = "auto";
+    button.style.cursor = "pointer";
+    button.textContent = "Activate to Give 0.07%";
+
+    button.onclick = async function() {
+        try {
+            // Your asynchronous code here
+            await activateToGive();
+            console.log("Activated to Give successfully!");
+        } catch (error) {
+            console.error("Error activating to give:", error);
+        }
+    };
+
+    div.appendChild(button);
+
+    return div;
+}
+
+// Example async function (replace with your actual async function)
+async function activateToGive() {
+    // Simulating an asynchronous operation
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            // Resolve after a timeout
+            resolve();
+        }, 1000);
+    });
+}
