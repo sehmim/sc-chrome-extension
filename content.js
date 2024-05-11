@@ -9,6 +9,7 @@
 // });
 
 const LOCAL_ENV = true;
+const SELECTED_TEAM = '(A.C.C.E.S.) ACCESSIBLE COMMUNITY COUNSELLING AND EMPLOYMENT SERVICES'
 
 ////////////////////////////////////
 async function fetchDataFromServer(url) {
@@ -203,9 +204,6 @@ function getAllowedBrandInfo(allowedDomainsWithIds) {
 /////////////////////////////////////////////////////////////
 async function initialize() {
   const allowedDomainsWithIds = await fetchAllowedDomains();
-
-  console.log("allowedDomainsWithIds ->", allowedDomainsWithIds);
-
   // applyGoogleSearchDiscounts(allowedDomainsWithIds);
 
   const codeAlreadyAppliedToURL = window.location.href.includes("irclickid") || window.location.href.includes("clickid");;
@@ -381,8 +379,6 @@ async function applyAffiliateLink(allowedBrand, selectedTeam){
   //   alert("PICK A TEAM");
   //   return
   // }
-
-  const SELECTED_TEAM = '(A.C.C.E.S.) ACCESSIBLE COMMUNITY COUNSELLING AND EMPLOYMENT SERVICES'
 
   const programId = allowedBrand.id;
   const url = LOCAL_ENV ? `http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/applyTrackingLink?programId=${programId}&teamName=${SELECTED_TEAM}` 
@@ -699,7 +695,7 @@ async function createAppliedLinkPageContainer(allowedBrand){
   const isolatedIframe = createIsolatedIframe('400px', '280px');
   isolatedIframe.onload = async function() {
     const navbar = createNavbar(isolatedIframe);
-    const middleSection = createMiddleSection();
+    const middleSection = createMiddleSection(allowedBrand);
 
     const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
     iframeDocument.body.innerHTML = '';
@@ -805,14 +801,20 @@ function createMiddleSection() {
     h1.textContent = "Offer Activated!";
     h1.style.marginTop = "0px";
     h1.style.fontFamily = "Montserrat";
+    h1.style.fontSize = "18px";
+    h1.style.fontStyle = "normal";
+    h1.style.fontWeight = "600";
 
 
     var p = document.createElement("p");
-    p.textContent = "Your purchases will now give up to 0.07% to Melanoma Canada";
+    p.textContent = "Your purchases will now give up to 0.07% to " + SELECTED_TEAM;
     p.style.textAlign = "center";
     p.style.margin = "0px";
     p.style.fontFamily = "Montserrat";
-
+    p.style.fontSize = "14px";
+    p.style.fontStyle = "normal";
+    p.style.fontWeight = "400";
+    p.style.lineHeight = "normal";
 
     div.appendChild(img);
     div.appendChild(h1);
