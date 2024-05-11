@@ -212,7 +212,11 @@ async function initialize() {
   const allowedBrand = getAllowedBrandInfo(allowedDomainsWithIds);
 
   if (allowedBrand && !codeAlreadyAppliedToURL) {
-    await createAppContainer(allowedBrand);
+    await createActivatePageContainer(allowedBrand);
+  }
+
+  if (allowedBrand && codeAlreadyAppliedToURL) {
+    await createAppliedLinkPageContainer(allowedBrand);
   }
 
   // if (matchedDomain && matchedDomain?.couponCode) {
@@ -253,54 +257,6 @@ function getUserInfo() {
   //   chrome.tabs.sendMessage(activeTab.id, { type: 'USER_EMAIL', payload: 'user@example.com' });
   // });
 }
-
-async function createAppContainer(allowedBrand){
-  const isolatedIframe = createIsolatedIframe('400px', '100px');
-  isolatedIframe.onload = async function() {
-    // TODO: CHECK IF LOGGED IN
-    // getUserInfo();
-
-    const leftDiv = createLeftDiv();
-    const rightDiv = createRightDiv(isolatedIframe);
-
-    const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
-    iframeDocument.body.innerHTML = '';
-    iframeDocument.body.style.display = 'flex';
-    iframeDocument.body.style.margin = '0px';
-
-    iframeDocument.body.appendChild(leftDiv);
-    iframeDocument.body.appendChild(rightDiv);
-
-
-    // const loginForm = generateLoginForm();
-    // const greetingDiv = greetUser();
-    // const closeButton = createCloseButton(isolatedIframe);
-
-    // const userEmail = localStorage.getItem('sponsorcircle-useremail');
-    // if (userEmail) {
-    //     const allowedTeams = await fetchAllowedGroups(userEmail);
-    //     const allowedCharaties = await fetchDefaultCharaties();
-
-    //     // const teamsCobined = ["------Your Teams-----" ,...allowedTeams, "-----Default Charities-----", ...allowedCharaties];
-
-    //     const { allowedTeamsDropdown, selectElement } = createDropdownWithOptions(allowedCharaties, "Pick A Team:");
-
-    //     const activateButton = createActivateButton(allowedBrand, selectElement);
-    //     const logoutbutton = createLogoutButton();
-
-    //     iframeDocument.body.appendChild(closeButton);
-    //     iframeDocument.body.appendChild(greetingDiv);
-    //     iframeDocument.body.appendChild(allowedTeamsDropdown);
-    //     // iframeDocument.body.appendChild(allowedCharatiesDropdown);
-    //     iframeDocument.body.appendChild(activateButton);
-    //     iframeDocument.body.appendChild(logoutbutton);
-    // } else {
-    //   iframeDocument.body.appendChild(closeButton);
-    //   iframeDocument.body.appendChild(loginForm);
-    // }
-  };
-  document.body.appendChild(isolatedIframe);
-} 
 
 function greetUser() {
   const userEmail = localStorage.getItem('sponsorcircle-useremail');
@@ -421,13 +377,16 @@ async function loginUser(email, password) {
 
 
 async function applyAffiliateLink(allowedBrand, selectedTeam){
-  if (selectedTeam === "------Your Teams-----" || selectedTeam === "-----Default Charities-----") {
-    alert("PICK A TEAM");
-    return
-  }
+  // if (selectedTeam === "------Your Teams-----" || selectedTeam === "-----Default Charities-----") {
+  //   alert("PICK A TEAM");
+  //   return
+  // }
+
+  const SELECTED_TEAM = '(A.C.C.E.S.) ACCESSIBLE COMMUNITY COUNSELLING AND EMPLOYMENT SERVICES'
+
   const programId = allowedBrand.id;
-  const url = LOCAL_ENV ? `http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/applyTrackingLink?programId=${programId}&teamName=${selectedTeam}` 
-      : `https://applytrackinglink-6n7me4jtka-uc.a.run.app?programId=${programId}&teamName=${selectedTeam}`;
+  const url = LOCAL_ENV ? `http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/applyTrackingLink?programId=${programId}&teamName=${SELECTED_TEAM}` 
+      : `https://applytrackinglink-6n7me4jtka-uc.a.run.app?programId=${programId}&teamName=${SELECTED_TEAM}`;
 
   // const data = await fetchDataFromServer(url);
   try {
@@ -574,9 +533,58 @@ function createIsolatedIframe(width, height) {
 }
 
 
+async function createActivatePageContainer(allowedBrand){
+  const isolatedIframe = createIsolatedIframe('400px', '100px');
+  isolatedIframe.onload = async function() {
+    // TODO: CHECK IF LOGGED IN
+    // getUserInfo();
+
+    const leftDiv = createLeftDiv();
+    const rightDiv = createRightDiv(isolatedIframe, allowedBrand);
+
+    const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
+    iframeDocument.body.innerHTML = '';
+    iframeDocument.body.style.display = 'flex';
+    iframeDocument.body.style.margin = '0px';
+
+    iframeDocument.body.appendChild(leftDiv);
+    iframeDocument.body.appendChild(rightDiv);
+
+
+    /////////  ROUGH ///////////
+    // const loginForm = generateLoginForm();
+    // const greetingDiv = greetUser();
+    // const closeButton = createCloseButton(isolatedIframe);
+
+    // const userEmail = localStorage.getItem('sponsorcircle-useremail');
+    // if (userEmail) {
+    //     const allowedTeams = await fetchAllowedGroups(userEmail);
+    //     const allowedCharaties = await fetchDefaultCharaties();
+
+    //     // const teamsCobined = ["------Your Teams-----" ,...allowedTeams, "-----Default Charities-----", ...allowedCharaties];
+
+    //     const { allowedTeamsDropdown, selectElement } = createDropdownWithOptions(allowedCharaties, "Pick A Team:");
+
+    //     const activateButton = createActivateButton(allowedBrand, selectElement);
+    //     const logoutbutton = createLogoutButton();
+
+    //     iframeDocument.body.appendChild(closeButton);
+    //     iframeDocument.body.appendChild(greetingDiv);
+    //     iframeDocument.body.appendChild(allowedTeamsDropdown);
+    //     // iframeDocument.body.appendChild(allowedCharatiesDropdown);
+    //     iframeDocument.body.appendChild(activateButton);
+    //     iframeDocument.body.appendChild(logoutbutton);
+    // } else {
+    //   iframeDocument.body.appendChild(closeButton);
+    //   iframeDocument.body.appendChild(loginForm);
+    // }
+  };
+  document.body.appendChild(isolatedIframe);
+} 
+
 function createLeftDiv() {
     var div = document.createElement("div");
-    div.style.width = "30%";
+    div.style.width = "35%";
     div.style.height = "100%";
     div.style.display = "flex"; // Use flexbox
     div.style.alignItems = "center"; // Center the content vertically
@@ -629,9 +637,9 @@ function createLeftDiv() {
     return div;
 }
 
-function createRightDiv(isolatedIframe) {
+function createRightDiv(isolatedIframe, allowedBrand) {
     var div = document.createElement("div");
-    div.style.width = "70%";
+    div.style.width = "65%";
     div.style.height = "100%";
     div.style.display = "flex";
 
@@ -654,18 +662,26 @@ function createRightDiv(isolatedIframe) {
     var button = document.createElement("button");
     button.style.borderRadius = "21px";
     button.style.border = "1px solid rgb(0, 0, 0)";
-    button.style.background = "rgba(44, 5, 147, 0.21)";
     button.style.height = "40px";
-    button.style.width = "80%";
+    button.style.width = "85%";
     button.style.margin = "auto";
     button.style.cursor = "pointer";
     button.textContent = "Activate to Give 0.07%";
 
+    // Change background color on hover
+    button.addEventListener("mouseenter", function() {
+        button.style.background = "rgba(44, 5, 147, 0.21)";
+    });
+
+    // Restore default background color when not hovered
+    button.addEventListener("mouseleave", function() {
+        button.style.background = "#FFF";
+    });
+
     button.onclick = async function() {
         try {
-            // Your asynchronous code here
-            await activateToGive();
-            console.log("Activated to Give successfully!");
+            // TODO: Check if Coupons else: 
+            await applyAffiliateLink(allowedBrand);
         } catch (error) {
             console.error("Error activating to give:", error);
         }
@@ -676,13 +692,131 @@ function createRightDiv(isolatedIframe) {
     return div;
 }
 
-// Example async function (replace with your actual async function)
-async function activateToGive() {
-    // Simulating an asynchronous operation
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            // Resolve after a timeout
-            resolve();
-        }, 1000);
-    });
+
+////////////////////////// createAppliedLinkPageContainer ///////////////////////////
+
+async function createAppliedLinkPageContainer(allowedBrand){
+  const isolatedIframe = createIsolatedIframe('400px', '280px');
+  isolatedIframe.onload = async function() {
+    const navbar = createNavbar(isolatedIframe);
+    const middleSection = createMiddleSection();
+
+    const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
+    iframeDocument.body.innerHTML = '';
+    iframeDocument.body.style.display = 'flex';
+    iframeDocument.body.style.flexDirection = 'column';
+    iframeDocument.body.style.margin = '0px';
+    iframeDocument.body.style.fontFamily = "Montserrat";
+
+    iframeDocument.body.appendChild(navbar);
+    iframeDocument.body.appendChild(middleSection);
+
+
+    /////////  ROUGH ///////////
+    // const loginForm = generateLoginForm();
+    // const greetingDiv = greetUser();
+    // const closeButton = createCloseButton(isolatedIframe);
+
+    // const userEmail = localStorage.getItem('sponsorcircle-useremail');
+    // if (userEmail) {
+    //     const allowedTeams = await fetchAllowedGroups(userEmail);
+    //     const allowedCharaties = await fetchDefaultCharaties();
+
+    //     // const teamsCobined = ["------Your Teams-----" ,...allowedTeams, "-----Default Charities-----", ...allowedCharaties];
+
+    //     const { allowedTeamsDropdown, selectElement } = createDropdownWithOptions(allowedCharaties, "Pick A Team:");
+
+    //     const activateButton = createActivateButton(allowedBrand, selectElement);
+    //     const logoutbutton = createLogoutButton();
+
+    //     iframeDocument.body.appendChild(closeButton);
+    //     iframeDocument.body.appendChild(greetingDiv);
+    //     iframeDocument.body.appendChild(allowedTeamsDropdown);
+    //     // iframeDocument.body.appendChild(allowedCharatiesDropdown);
+    //     iframeDocument.body.appendChild(activateButton);
+    //     iframeDocument.body.appendChild(logoutbutton);
+    // } else {
+    //   iframeDocument.body.appendChild(closeButton);
+    //   iframeDocument.body.appendChild(loginForm);
+    // }
+  };
+  document.body.appendChild(isolatedIframe);
+}
+
+
+function createNavbar(isolatedIframe) {
+    var div = document.createElement("div");
+    div.style.flexDirection = "row";
+    div.style.background = "rgb(44, 5, 147)";
+    div.style.padding = "10px";
+    div.style.alignItems = "center";
+    div.style.display = "flex";
+
+    var img1 = document.createElement("img");
+    img1.src = "https://i.imgur.com/zbRF4VT.png";
+    img1.style.borderRadius = "8px";
+    img1.style.width = "20px";
+    img1.style.marginRight = "10px";
+
+    var img2 = document.createElement("img");
+    img2.src = "https://i.imgur.com/xobrrSH.png";
+    img2.style.width = "150px";
+
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'X';
+    closeButton.style.position = 'absolute';
+    closeButton.style.top = '5px';
+    closeButton.style.right = '3px';
+    closeButton.style.backgroundColor = 'transparent';
+    closeButton.style.border = 'none';
+    closeButton.style.cursor = 'pointer';
+    closeButton.style.fontSize = '15px';
+    closeButton.style.color = 'white';
+    closeButton.onclick = function() {
+      isolatedIframe.style.display = 'none';
+    };
+    div.appendChild(closeButton);
+
+
+    div.appendChild(img1);
+    div.appendChild(img2);
+
+    return div;
+}
+
+function createMiddleSection() {
+    var div = document.createElement("div");
+    div.style.display = "flex";
+    div.style.flexDirection = "column";
+    div.style.alignItems = "center";
+    div.style.justifyContent = "center";
+
+    var img = document.createElement("img");
+    img.src = "https://i.imgur.com/WGbvcpd.png";
+    img.style.width = "51.324px";
+    img.style.height = "49px";
+    img.style.margin = "20px";
+    img.style.padding = "10px";
+    img.style.borderRadius = "10px";
+    img.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+
+
+    var h1 = document.createElement("h1");
+    h1.textContent = "Offer Activated!";
+    h1.style.marginTop = "0px";
+    h1.style.fontFamily = "Montserrat";
+
+
+    var p = document.createElement("p");
+    p.textContent = "Your purchases will now give up to 0.07% to Melanoma Canada";
+    p.style.textAlign = "center";
+    p.style.margin = "0px";
+    p.style.fontFamily = "Montserrat";
+
+
+    div.appendChild(img);
+    div.appendChild(h1);
+    div.appendChild(p);
+
+    return div;
 }
