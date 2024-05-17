@@ -1,11 +1,10 @@
 console.log('Background script loaded.');
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log("message ---->", message );
-    console.log("sender ---->", sender );
+// chrome.runtime.onMessageExternal.addListener(function(message, sender, sendResponse) {
+//     console.log(message, sender);
+//     sendResponse(true);
+// });
 
-  if (message.type === 'USER_EMAIL') {
-    console.log('User email received:', message.payload);
-    chrome.storage.local.set({ userEmail: message.payload });
-  }
-});
+// async function makeApiCall() {
+    
+// }

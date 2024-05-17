@@ -1,13 +1,3 @@
-// chrome.storage.local.get('userInfo', (data) => {
-//   const userInfo = data.userInfo;
-//   if (userInfo) {
-//     // Do something with the user information
-//     console.log('User information:', userInfo);
-//   } else {
-//     console.log('User information not found.');
-//   }
-// });
-
 const LOCAL_ENV = true;
 const SELECTED_TEAM = '(A.C.C.E.S.) ACCESSIBLE COMMUNITY COUNSELLING AND EMPLOYMENT SERVICES'
 
@@ -130,7 +120,7 @@ function createLogoutButton() {
 }
 
 //////////////////////////////////////
-function handleApplyCouponCode(couponCode, maindDiv){
+function handleApplyCouponCode(couponCode, isolatedIframe){
   let discountInput = 
     document.querySelector('input[aria-label="Discount code"]') 
     || document.querySelector('input[placeholder="Discount code"]');
@@ -155,8 +145,8 @@ function handleApplyCouponCode(couponCode, maindDiv){
       if (applyButton) {
         // Simulate a click event on the button
         applyButton.click();
-
-        maindDiv.style.display = 'none';
+        isolatedIframe.style.display = 'none';
+        // maindDiv.style.display = 'none';
       } else {
         console.error('Button with aria-label "Apply Discount Code" not found.');
       }
@@ -190,31 +180,68 @@ async function fetchDefaultCharaties() {
 }
 
 function getAllowedBrandInfo(allowedDomainsWithIds) {
-  const currentWebsiteUrl = window.location.href;
+  const currentWebsiteUrl = window.location.hostname;
 
   for (const [url, id] of Object.entries(allowedDomainsWithIds)) {
-    if (currentWebsiteUrl.includes(url)) {
-      return { url, id };
+
+    const urlHostname = new URL(url);
+    if (currentWebsiteUrl.includes(urlHostname.hostname)) {
+      return { url: urlHostname, id };
     }
   }
 
   return null;
 }
 
-/////////////////////////////////////////////////////////////
-async function initialize() {
-  const allowedDomainsWithIds = await fetchAllowedDomains();
-  // applyGoogleSearchDiscounts(allowedDomainsWithIds);
+function isCouponedWebsite() {
+  // const COUPONED_BRANDS = ["lacoutts.com", "softstrokessilk.com", "lavenderpolo.com"]
+  let couponInfo = null;
+  const href = window.location.href;
 
-  const codeAlreadyAppliedToURL = window.location.href.includes("irclickid") || window.location.href.includes("clickid");;
-  const allowedBrand = getAllowedBrandInfo(allowedDomainsWithIds);
-
-  if (allowedBrand && !codeAlreadyAppliedToURL) {
-    await createActivatePageContainer(allowedBrand);
+  if (href.includes("https://lacoutts.com/checkouts")) {
+    couponInfo = {
+      brand: "lacoutts.com",
+      couponCode: "LaCouttsSC20",
+      amount: "20%"
+    }
+  } else if (href.includes("https://www.softstrokessilk.com/checkouts")) {
+    couponInfo = {
+      brand: "softstrokessilk.com",
+      couponCode: "LOVESILK",
+      amount: "10%"
+    }
+  } else if(href.includes("https://www.lavenderpolo.com/checkout")){
+    couponInfo = {
+      brand: "lavenderpolo.com",
+      couponCode: "LPOLO",
+      amount: "10%"
+    }
   }
 
-  if (allowedBrand && codeAlreadyAppliedToURL) {
-    await createAppliedLinkPageContainer(allowedBrand);
+  return couponInfo;
+}
+
+/////////////////////////////////////////////////////////////
+async function initialize() {
+  // applyGoogleSearchDiscounts(allowedDomainsWithIds);
+
+  // If Couponsed Website show coupon view
+  const couponInfo = isCouponedWebsite();
+  if (couponInfo) {
+    console.log("THIS IS A COUPON BRAND");
+    await createApplyCouponCodeContainer(couponInfo);
+  } else {
+    const allowedDomainsWithIds = await fetchAllowedDomains();
+    const codeAlreadyAppliedToURL = window.location.href.includes("irclickid") || window.location.href.includes("clickid");;
+    const allowedBrand = getAllowedBrandInfo(allowedDomainsWithIds);
+
+    if (allowedBrand && !codeAlreadyAppliedToURL) {
+      await createActivatePageContainer(allowedBrand);
+    }
+
+    if (allowedBrand && codeAlreadyAppliedToURL) {
+      await createAppliedLinkPageContainer(allowedBrand);
+    }
   }
 
   // if (matchedDomain && matchedDomain?.couponCode) {
@@ -489,7 +516,7 @@ async function fetchAllowedDomains() {
 
 
 
-///////////////////////////// DIVS FOR NEW DESIGN //////////////////////////////////
+///////////////////////////// NEW DESIGN //////////////////////////////////
 function createIsolatedIframe(width, height) {
   // Create a new iframe element
   const iframe = document.createElement('iframe');
@@ -497,9 +524,9 @@ function createIsolatedIframe(width, height) {
   // Set attributes for the iframe
   iframe.setAttribute('src', 'about:blank'); // Load a blank page initially
 
-  // Set inline styles for the iframe
+  // Set initial inline styles for the iframe
   iframe.style.position = 'fixed';
-  iframe.style.top = '30%';
+  iframe.style.top = '-100%'; // Start from above the viewport
   iframe.style.left = '85%';
   iframe.style.transform = 'translate(-50%, -50%)';
   iframe.style.width = width;
@@ -509,7 +536,8 @@ function createIsolatedIframe(width, height) {
   iframe.style.borderRadius = '16px';
   iframe.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
   iframe.style.display = 'flex';
-
+  iframe.style.zIndex = 1000;
+  iframe.style.transition = 'top 0.75s ease-out'; // Animation for moving down
 
   // Access the document within the iframe
   const iframeDocument = iframe.contentDocument;
@@ -524,6 +552,14 @@ function createIsolatedIframe(width, height) {
     iframeDocument.body.style.color = '#333';
   }
 
+  // // Append the iframe to the document body
+  // document.body.appendChild(iframe);
+
+  // Trigger the animation after appending
+  setTimeout(() => {
+    iframe.style.top = '30%'; // Move down to the final position
+  }, 0);
+
   // Return the created iframe
   return iframe;
 }
@@ -532,8 +568,6 @@ function createIsolatedIframe(width, height) {
 async function createActivatePageContainer(allowedBrand){
   const isolatedIframe = createIsolatedIframe('400px', '100px');
   isolatedIframe.onload = async function() {
-    // TODO: CHECK IF LOGGED IN
-    // getUserInfo();
 
     const leftDiv = createLeftDiv();
     const rightDiv = createRightDiv(isolatedIframe, allowedBrand);
@@ -633,7 +667,9 @@ function createLeftDiv() {
     return div;
 }
 
-function createRightDiv(isolatedIframe, allowedBrand) {
+function createRightDiv(isolatedIframe, allowedBrand, couponInfo) {
+    const discountAmount = couponInfo ? couponInfo.amount : "TODO";
+
     var div = document.createElement("div");
     div.style.width = "65%";
     div.style.height = "100%";
@@ -662,7 +698,7 @@ function createRightDiv(isolatedIframe, allowedBrand) {
     button.style.width = "85%";
     button.style.margin = "auto";
     button.style.cursor = "pointer";
-    button.textContent = "Activate to Give 0.07%";
+    button.textContent = `Activate to Give ${discountAmount}`;
 
     // Change background color on hover
     button.addEventListener("mouseenter", function() {
@@ -676,8 +712,13 @@ function createRightDiv(isolatedIframe, allowedBrand) {
 
     button.onclick = async function() {
         try {
-            // TODO: Check if Coupons else: 
-            await applyAffiliateLink(allowedBrand);
+            if (allowedBrand) {
+              await applyAffiliateLink(allowedBrand);
+            } 
+
+            if (couponInfo) {
+              await handleApplyCouponCode(couponInfo?.couponCode, isolatedIframe);
+            }
         } catch (error) {
             console.error("Error activating to give:", error);
         }
@@ -689,8 +730,7 @@ function createRightDiv(isolatedIframe, allowedBrand) {
 }
 
 
-////////////////////////// createAppliedLinkPageContainer ///////////////////////////
-
+////////////////////////// ACTIVATED LINK ///////////////////////////
 async function createAppliedLinkPageContainer(allowedBrand){
   const isolatedIframe = createIsolatedIframe('400px', '280px');
   isolatedIframe.onload = async function() {
@@ -738,7 +778,6 @@ async function createAppliedLinkPageContainer(allowedBrand){
   };
   document.body.appendChild(isolatedIframe);
 }
-
 
 function createNavbar(isolatedIframe) {
     var div = document.createElement("div");
@@ -821,4 +860,23 @@ function createMiddleSection() {
     div.appendChild(p);
 
     return div;
+}
+
+
+///////////////////// COUPON CODE ////////////////////////////
+async function createApplyCouponCodeContainer(couponInfo){
+  const isolatedIframe = createIsolatedIframe('400px', '100px');
+  isolatedIframe.onload = async function() {
+    const leftDiv = createLeftDiv();
+    const rightDiv = createRightDiv(isolatedIframe, undefined, couponInfo);
+
+    const iframeDocument = isolatedIframe.contentDocument || isolatedIframe.contentWindow.document;
+    iframeDocument.body.innerHTML = '';
+    iframeDocument.body.style.display = 'flex';
+    iframeDocument.body.style.margin = '0px';
+
+    iframeDocument.body.appendChild(leftDiv);
+    iframeDocument.body.appendChild(rightDiv);
+  };
+  document.body.appendChild(isolatedIframe);
 }
