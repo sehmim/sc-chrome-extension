@@ -1,48 +1,67 @@
-.sc-graphic {
-  height: auto;
-  margin: 0 auto;
-  max-width: 300px;
-  width: 100%;
+.sponsor-circle-app {
+  width: 500px;
+  height: 510px;
+  border-radius: 20px;
+  background-color: #fff; /* Optional: Set background color */
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1); /* Optional: Add box shadow */
 }
 
-.sc-content {
-  margin: 0 auto;
-  padding: 50px;
-  width: 300px;
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  background: rgb(44, 5, 147);
+  padding: 10px;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+}
+.navbar-image-wrapper {
+  display: flex;  
+  flex-direction: row;
+  align-items: center;
 }
 
-.sc-content h1 {
-  font-size: 25px;
-  margin: 30px 0 15px;
+.close-button {
+  color: #fff;
+}
+
+
+.navbar-img {
+  width: 150px;
+}
+
+.merchants-container {
+  height: 350px;
+  display: flex;
+  flex-wrap: wrap;
+  overflow: auto;
+  justify-content: space-between;
+}
+
+.merchant {
+  border: 1px solid gray;
+  width: 145px;
+  height: 135px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  margin-bottom: 15px;
+}
+
+.merchant-img-wrapper {
+  width: 80px;
+  height: 80px;
+  background-color: gray;
+  border-radius: 50px;
+}
+
+.merchant-img {
+  width: 80px;
+  border-radius: 50px;
+}
+
+.discover-more {
   text-align: center;
-}
-
-.sc-content p {
-  font-size: 14px;
-  margin: 0;
-  text-align: center;
-}
-
-.sc-content span {
-  display: block;
-  font-size: 10px;
-  margin-top: 15px;
-  text-align: center;
-}
-
-.sc-slider {
-  position: fixed;
-  right: 20px;
-  top: 20px;
-  z-index: 99999999;
-  width: 400px;
-  height: 500px;
-  background-color: #fff;
-  border-radius: 5px;
-  border: 1px solid #ddd;
-  box-shadow: 0px 0px 30px -2px #666;
-  line-height: 1;
-  box-sizing: content-box;
-  text-rendering: auto;
-  font-family: 'Cerebri Sans', sans-serif;
+  padding: 10px;
 }

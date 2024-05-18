@@ -153,6 +153,9 @@ function handleApplyCouponCode(couponCode, isolatedIframe){
     }, 300);
   }
 
+function handleApplyCouponCodeForLavenderPolo(couponCode, isolatedIframe) {
+  
+}
 
 async function fetchAllowedGroups(userEmail) {
   const url = LOCAL_ENV ? "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/getAllGroups" : "https://getallgroups-6n7me4jtka-uc.a.run.app";
@@ -210,13 +213,15 @@ function isCouponedWebsite() {
       couponCode: "LOVESILK",
       amount: "10%"
     }
-  } else if(href.includes("https://www.lavenderpolo.com/checkout")){
-    couponInfo = {
-      brand: "lavenderpolo.com",
-      couponCode: "LPOLO",
-      amount: "10%"
-    }
-  }
+  } 
+
+  // else if(href.includes("https://www.lavenderpolo.com/checkout")){
+  //   couponInfo = {
+  //     brand: "lavenderpolo.com",
+  //     couponCode: "LPOLO",
+  //     amount: "10%"
+  //   }
+  // }
 
   return couponInfo;
 }
@@ -234,6 +239,12 @@ async function initialize() {
     const allowedDomainsWithIds = await fetchAllowedDomains();
     const codeAlreadyAppliedToURL = window.location.href.includes("irclickid") || window.location.href.includes("clickid");;
     const allowedBrand = getAllowedBrandInfo(allowedDomainsWithIds);
+
+    const isGoogleSearch = window.location.href.includes('https://www.google.com/search');
+
+    if (isGoogleSearch) {
+      await applyGoogleSearchDiscounts(allowedDomainsWithIds);
+    }
 
     if (allowedBrand && !codeAlreadyAppliedToURL) {
       await createActivatePageContainer(allowedBrand);
@@ -440,7 +451,6 @@ async function fetchAllowedDomains() {
     return allowedDomains
   }
 
-  console.log("CALLING ALLOWED DOMAINS");
   const url = LOCAL_ENV ? "http://127.0.0.1:5001/sponsorcircle-3f648/us-central1/allowedDomains" : "https://alloweddomains-6n7me4jtka-uc.a.run.app";
   allowedDomains = await fetchDataFromServer(url) || [];
 
@@ -452,37 +462,55 @@ async function fetchAllowedDomains() {
 
 
 // async function main(){
-//   function applyGoogleSearchDiscounts(allowedDomainsWithIds) {
+  function applyGoogleSearchDiscounts(allowedDomainsWithIds) {
 
-//     const searchResults = document.querySelectorAll('div.g');
+    console.log("allowedDomainsWithIds ->", allowedDomainsWithIds);
 
-//     searchResults.forEach(result => {
-//       const url = result.querySelector('a[href^="http"]').href;
-//       const domain = new URL(url).hostname;
+    const percentage = "TODO%";
+    const searchResults = document.querySelectorAll('div.g');
 
-//       for (const [url, id] of Object.entries(allowedDomainsWithIds)) {
-//         const allowedDomain = new URL(url).hostname;
+    searchResults.forEach(result => {
+      const url = result.querySelector('a[href^="http"]').href;
+      const domain = new URL(url).hostname;
 
-//         if (domain.includes(allowedDomain)) {
-//           // Add a tag
-//           const affiliateLinkWrapper = document.createElement('a');
+      for (const [url, id] of Object.entries(allowedDomainsWithIds)) {
+        const allowedDomain = new URL(url).hostname;
 
-//           const img = document.createElement('img');
-//           img.src = "https://sponsorcircle.com/wp-content/uploads/2021/02/sponsor-circle-black-transparent-1.png";
-//           img.width = "50";
+        if (domain.includes(allowedDomain)) {
+          const mainDiv = document.createElement('div');
+          mainDiv.style.color = '#1a0dab';
+          mainDiv.style.background = '#eeeeee';
+          mainDiv.style.fontSize = '14px';
+          mainDiv.style.lineHeight = '27px';
+          mainDiv.style.height = '37px';
+          mainDiv.style.margin = '0 0 7px 0';
+          mainDiv.style.padding = '6px 0 0 8px';
+          mainDiv.style.boxSizing = 'border-box';
+          mainDiv.style.width = '100%';
+          mainDiv.style.borderRadius = '5px';
+          mainDiv.style.fontFamily = "'Cerebri Sans', sans-serif";
+          mainDiv.style.minWidth = '542px';
+          mainDiv.style.cursor = 'pointer';
 
-//           const link = document.createElement('a');
-//           link.href = 'https://sponsorcircle.com/';
-//           link.innerText = 'Give 5% to your cause 💜';
+          const logoDiv = document.createElement('div');
+          logoDiv.style.width = '33px';
+          logoDiv.style.height = '25px';
+          logoDiv.style.float = 'left';
+          logoDiv.style.background = "url(https://i.imgur.com/GDbtHnR.png) no-repeat";
+          logoDiv.style.backgroundSize = 'contain';
 
-//           affiliateLinkWrapper.appendChild(img);
-//           affiliateLinkWrapper.appendChild(link);
+          const textDiv = document.createElement('div');
+          textDiv.style.whiteSpace = 'nowrap';
+          textDiv.textContent = `Give ${percentage} to your cause 💜`
 
-//           result.insertBefore(affiliateLinkWrapper, result.firstChild);
-//         }
-//       }
-//     });
-//   }
+          mainDiv.appendChild(logoDiv);
+          mainDiv.appendChild(textDiv);
+
+          result.insertBefore(mainDiv, result.firstChild);
+        }
+      }
+    });
+  }
 
 //   // Function to simulate fetching allowed domains with a delay
 //   async function fetchAllowedDomains() {
@@ -536,7 +564,7 @@ function createIsolatedIframe(width, height) {
   iframe.style.borderRadius = '16px';
   iframe.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
   iframe.style.display = 'flex';
-  iframe.style.zIndex = 1000;
+  iframe.style.zIndex = 10000;
   iframe.style.transition = 'top 0.75s ease-out'; // Animation for moving down
 
   // Access the document within the iframe
@@ -644,7 +672,7 @@ function createLeftDiv() {
     image2Wrapper.style.marginLeft = "5px";
 
     var image2 = document.createElement("img");
-    image2.src = "https://i.imgur.com/WGbvcpd.png";
+    image2.src = "https://i.imgur.com/BntBs75.png";
     image2.style.borderRadius = "8px";
     image2.style.width = "37px";
     image2.style.margin = "auto";

@@ -17,6 +17,9 @@
       "css": ["css/index.css"]
     }
   ],
+  "externally_connectable": {
+    "matches": ["*://localhost/*"]
+  },
   "web_accessible_resources": [
     {
       "resources": ["css/index.css"],
